@@ -30,15 +30,13 @@ Node.js 22+
 
 1. 点击按钮，登录 Cloudflare 并连接 GitHub 账号。源仓库需要公开，并已上传本项目文件。
 2. 选择新仓库和 Worker 的名称。构建命令留空，部署命令使用 `npm run deploy`。
-3. 填写下面两个 Secret。可用密码管理器分别生成两个不同的 64 位 ASCII 随机字符串；每项接受 32–512 个可见 ASCII 字符。
-4. 完成部署后，在服务地址后加 `/health` 检查；显示 `status: "ok"` 和 `configured: true` 后即可接入。
+3. 直接部署，无需填写 `CONNECT_CODE` 或 `SIGNING_KEY`。首次部署时，脚本会自动生成两个独立的随机密钥并保存到 Cloudflare。
+4. 打开初始化密钥的那次部署的构建日志，找到 `License Key (CONNECT_CODE):`，复制并保存后面的值。私有的 `SIGNING_KEY` 不会显示。
+5. 打开部署后的地址并加上 `/health`。确认返回 `status: "ok"` 和 `configured: true` 后，在 Bruno 的 License Server 界面填写 Worker 地址和刚才保存的 Key。
 
-| Secret | 用途 |
-|---|---|
-| `CONNECT_CODE` | 在 Bruno 中填写的 **License Key**，请保存该值 |
-| `SIGNING_KEY` | 服务器的私有签名密钥，不填入 Bruno |
+只需完成账号授权并选择仓库和 Worker，无需本机安装 npm，也无需手动生成密钥。网页部署不会生成本机 Key 文件。首次初始化时，日志会在上传前显示 Key，初始化成功后即可使用；如果忘记保存，可回到实际保存当前密钥的那次部署日志查找。
 
-在 Bruno 的 License Server 界面使用部署后的 Worker 地址和 `CONNECT_CODE`。网页部署不会生成本机 Key 文件。后续更新使用绑定的仓库或 `npm run deploy`；在新的本地目录对同一 Worker 执行 `setup` 可能替换其密钥。首次仍需账号授权和填写密钥，此网页流程无需本机安装 npm。
+后续通过绑定仓库更新或运行 `npm run deploy`，都会保留已有的两项密钥。若远程只存在其中一项，脚本会停止初始化，保留现有密钥。若上传失败且远程未保存任何一项密钥，重试会生成新 Key，请保存重试日志中的新值；若报错前两项密钥实际上已保存，重试会保留它们，请使用上一次日志中的 Key。同一个 Worker 请等首次初始化结束后再启动下一次部署；脚本没有协调多个同时运行的初始化任务。已经部署过的服务继续使用原来的 Key。在新的本地目录对同一 Worker 执行 `setup` 可能替换其密钥。
 
 ### 从终端部署
 
@@ -89,9 +87,9 @@ npm run deploy
 
 | 字段 | 内容 |
 |---|---|
-| License Server URL | setup 输出的 Server URL，不加 API 路径 |
+| License Server URL | 部署后的 Worker 地址或 setup 输出的 Server URL，不加 API 路径 |
 | Email | 你的邮箱；只检查格式，不发送验证邮件 |
-| License Key | setup 输出的完整 Key |
+| License Key | 实际保存当前密钥的那次部署日志或终端 setup 输出的完整 Key |
 
 点击 **Activate**。
 

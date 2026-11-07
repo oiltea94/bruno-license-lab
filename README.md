@@ -30,15 +30,13 @@ Node.js 22+
 
 1. Click the button, sign in to Cloudflare, and connect your GitHub account. The source repository must be public and contain these project files.
 2. Choose the new repository and Worker names. Keep the build command empty and use `npm run deploy` as the deploy command.
-3. Fill in the two secret fields below. Use a password manager to generate two different random 64-character ASCII strings; each field accepts 32–512 visible ASCII characters.
-4. Deploy, then open the deployed URL followed by `/health`. Continue when it reports `status: "ok"` and `configured: true`.
+3. Deploy without entering `CONNECT_CODE` or `SIGNING_KEY`. On the first deployment, the script automatically generates two independent random secrets and stores them in Cloudflare.
+4. Open the build log of the deployment that initializes the secrets, find `License Key (CONNECT_CODE):`, and copy the value. The private `SIGNING_KEY` is never printed. Save the Key for future use.
+5. Open the deployed URL followed by `/health`. Continue when it reports `status: "ok"` and `configured: true`, then use the Worker URL and your Key in Bruno's License Server screen.
 
-| Secret | Purpose |
-|---|---|
-| `CONNECT_CODE` | The **License Key** you enter in Bruno; save this value |
-| `SIGNING_KEY` | The server's private signing secret; do not enter it in Bruno |
+Only account authorization and repository/Worker choices are required; no local npm installation or manual secret generation is needed. Browser deployment does not create a local Key file. The Key appears during first-time initialization, before upload, and becomes usable once initialization succeeds. If it is lost, retrieve it from the log of the attempt that stored the current secrets.
 
-Use the deployed Worker URL and your `CONNECT_CODE` in Bruno's License Server screen. Browser deployment does not create a local Key file. For updates, use the connected repository or `npm run deploy`; running a fresh local `setup` against the same Worker can replace its secrets. The button requires account authorization and secret input on first use; no local npm installation is needed for this browser flow.
+Later deployments through the connected repository or `npm run deploy` preserve both existing secrets. An incomplete secret pair stops initialization without overwriting either secret. If upload fails and neither secret was stored, a retry generates a new Key: save the Key from that retry. If both secrets were stored despite the error, a retry preserves them: use the Key printed by the earlier attempt. Wait for initial setup to finish before starting another deployment of the same Worker; simultaneous initializations are not coordinated. For an existing service, keep using your current Key. Running a fresh local `setup` against the same Worker can replace its secrets.
 
 ### Deploy from a terminal
 
@@ -89,9 +87,9 @@ Open **License**, select **License Server**, then fill in:
 
 | Field | Value |
 |---|---|
-| License Server URL | Setup's Server URL, without an API path |
+| License Server URL | The deployed Worker URL or setup's Server URL, without an API path |
 | Email | Your email address; format is checked, no verification email is sent |
-| License Key | The complete Key printed by setup |
+| License Key | The complete Key from the log of the attempt that stored the current secrets, or terminal setup |
 
 Click **Activate**.
 

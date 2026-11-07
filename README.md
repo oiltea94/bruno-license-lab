@@ -30,14 +30,16 @@ The repository includes the complete server source, deployment scripts and tests
 ### Deploy from GitHub
 
 1. Click the button, sign in to Cloudflare, and connect your GitHub account. The source repository must be public and contain these project files.
-2. Choose the new repository and Worker names. Keep the build command empty and use `npm run deploy` as the deploy command.
-3. Deploy without entering `CONNECT_CODE` or `SIGNING_KEY`. On the first deployment, the script automatically generates two independent random secrets and stores them in Cloudflare.
+2. Choose the new repository and Worker names. Keep the build command empty and leave the deploy command at its default, `npx wrangler deploy`. `npm run deploy` is also supported.
+3. Deploy without entering `CONNECT_CODE` or `SIGNING_KEY`. On the first deployment, Wrangler automatically runs initialization to generate two independent random secrets and store them in Cloudflare.
 4. Open the build log of the deployment that initializes the secrets, find `License Key (CONNECT_CODE):`, and copy the value. The private `SIGNING_KEY` is never printed. Save the Key for future use.
 5. Open the deployed URL followed by `/health`. Continue when it reports `status: "ok"` and `configured: true`, then use the Worker URL and your Key in Bruno's License Server screen.
 
-Only account authorization and repository/Worker choices are required; no local npm installation or manual secret generation is needed. Browser deployment does not create a local Key file. The Key appears during first-time initialization, before upload, and becomes usable once initialization succeeds. If it is lost, retrieve it from the log of the attempt that stored the current secrets.
+Only account authorization and repository/Worker choices are required; no local npm installation or manual secret generation is needed. Browser deployment does not create a local Key file. The Key appears during first-time initialization, before the secrets are saved. Wait for the entire deployment to succeed before using it. If it is lost, retrieve it from the log of the attempt that stored the current secrets.
 
-Later deployments through the connected repository preserve both existing secrets. An incomplete secret pair stops initialization without overwriting either secret. If upload fails and neither secret was stored, a retry generates a new Key: save the Key from that retry. If both secrets were stored despite the error, a retry preserves them: use the Key printed by the earlier attempt. Wait for initial setup to finish before starting another deployment of the same Worker; simultaneous initializations are not coordinated. For an existing service, keep using your current Key.
+Later deployments through the connected repository preserve both existing secrets. An incomplete secret pair stops initialization without overwriting either secret. If upload fails and neither secret was stored, a retry generates a new Key: save the Key from that retry. If both secrets were stored despite the error, a retry preserves them: use the Key printed by the earlier attempt. Wait for initial setup to finish before starting another deployment of the same Worker; simultaneous initializations are not coordinated. For an existing service, keep using your current Key. If the secrets were saved but the later code deployment failed, retries retain that Key; retrieve it from the build log where initialization succeeded.
+
+Repository owners can also connect their existing GitHub repository directly in the Cloudflare dashboard, using the same default deploy command.
 
 Use the deployed Worker's actual `workers.dev` URL. For a custom domain, configure it on the Worker and use that exact HTTPS origin; `PUBLIC_ORIGIN` may be set to fix the origin explicitly.
 

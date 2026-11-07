@@ -12,7 +12,7 @@
     "dev": "node scripts/wrangler.mjs dev --local",
     "dry-run": "node scripts/wrangler.mjs deploy --dry-run --outdir .dry-run",
     "setup": "node scripts/setup.mjs",
-    "deploy": "node scripts/deploy.mjs"
+    "deploy": "node scripts/wrangler.mjs deploy"
   },
   "devDependencies": {
     "wrangler": "4.158.0"

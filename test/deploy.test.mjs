@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { deploy } from '../scripts/deploy.mjs';
+import { initializeSecrets, runBuild } from '../scripts/init-secrets.mjs';
+
+const initialize = options => initializeSecrets({ workerName: 'bruno-license-lab', ...options });
 import worker from '../worker.mjs';
 
 // Only the external Wrangler/Cloudflare boundary is simulated.
@@ -9,7 +11,8 @@ function cloud(initial = {}) {
   const calls = [];
   const runner = async (args, input, options = {}) => {
     calls.push({ args, input, options });
-    if (args.join(' ') === 'deploy') return 0;
+    assert.deepEqual(args.slice(-2), ['--name', 'bruno-license-lab']);
+    args = args.slice(0, -2);
     if (args.join(' ') === 'secret list --format json') {
       return { code: 0, stdout: JSON.stringify(Object.keys(secrets).map(name => ({ name, type: 'secret_text' }))) };
     }
@@ -22,10 +25,10 @@ function cloud(initial = {}) {
   return { secrets, calls, runner };
 }
 
-test('first deployment generates usable credentials and displays only the activation key', async () => {
+test('initialization generates usable credentials and displays only the activation key', async () => {
   const remote = cloud({ OTHER_SECRET: 'preserve-me' });
   const output = [];
-  await deploy({ environment: {}, runner: remote.runner, output: value => output.push(value) });
+  await initialize({ runner: remote.runner, output: value => output.push(value) });
   const { CONNECT_CODE, SIGNING_KEY } = remote.secrets;
   assert.match(CONNECT_CODE, /^[A-Za-z0-9_-]{64}$/);
   assert.match(SIGNING_KEY, /^[A-Za-z0-9_-]{64}$/);
@@ -55,8 +58,8 @@ test('redeploying preserves both existing secrets and does not upload or print r
   const original = { CONNECT_CODE: 'a'.repeat(64), SIGNING_KEY: 'b'.repeat(64) };
   const remote = cloud(original);
   const output = [];
-  await deploy({ environment: {}, runner: remote.runner, output: value => output.push(value) });
-  await deploy({ environment: {}, runner: remote.runner, output: value => output.push(value) });
+  await initialize({ runner: remote.runner, output: value => output.push(value) });
+  await initialize({ runner: remote.runner, output: value => output.push(value) });
   assert.deepEqual(remote.secrets, original);
   assert.ok(remote.calls.every(call => call.input === undefined));
   assert.ok(!output.join('\n').includes(original.CONNECT_CODE));
@@ -67,20 +70,30 @@ for (const name of ['CONNECT_CODE', 'SIGNING_KEY']) {
   test(`partial configuration (${name} only) stops without overwriting secrets`, async () => {
     const original = { [name]: 'a'.repeat(64) };
     const remote = cloud(original);
-    await assert.rejects(deploy({ environment: {}, runner: remote.runner, output() {} }), /incomplete/i);
+    await assert.rejects(initialize({ runner: remote.runner, output() {} }), /incomplete/i);
     assert.deepEqual(remote.secrets, original);
     assert.ok(remote.calls.every(call => call.input === undefined));
   });
 }
 
-test('failed deployment stops before reading or writing remote secrets', async () => {
-  let count = 0;
-  await assert.rejects(deploy({ environment: {}, runner: async () => { count++; return 1; }, output() {} }), /deploy/i);
-  assert.equal(count, 1);
+test('a new Worker is initialized only after Wrangler explicitly reports that target missing', async () => {
+  const remote = cloud();
+  let first = true;
+  const runner = async (args, input, options) => {
+    if (first) {
+      first = false;
+      return { code: 1, stdout: '', stderr: 'Worker "bruno-license-lab" not found.\nIf this is a new Worker, run \u0060wrangler deploy\u0060 first to create it.' };
+    }
+    return remote.runner(args, input, options);
+  };
+  await initialize({ runner, output() {} });
+  assert.match(remote.secrets.CONNECT_CODE, /^[A-Za-z0-9_-]{64}$/);
 });
 
 for (const listing of [
   { code: 1, stdout: 'Access denied' },
+  { code: 1, stdout: '', stderr: 'Worker \"another-worker\" not found.' },
+  { code: 1, stdout: '', stderr: 'Authentication error [code: 10000]' },
   { code: 0, stdout: 'not JSON' },
   { code: 0, stdout: '{}' },
   { code: 0, stdout: '[null]' },
@@ -90,12 +103,11 @@ for (const listing of [
     let count = 0;
     const runner = async () => {
       count++;
-      if (count === 1) return 0;
-      if (count === 2) return listing;
+      if (count === 1) return listing;
       assert.fail('must not write secrets after an invalid listing');
     };
-    await assert.rejects(deploy({ environment: {}, runner, output() {} }), /secret/i);
-    assert.equal(count, 2);
+    await assert.rejects(initialize({ runner, output() {} }), /secret/i);
+    assert.equal(count, 1);
   });
 }
 
@@ -110,7 +122,7 @@ test('upload failure retains the generated activation key in output without expo
     }
     return remote.runner(args, input, options);
   };
-  await assert.rejects(deploy({ environment: {}, runner, output: value => output.push(value) }), error => {
+  await assert.rejects(initialize({ runner, output: value => output.push(value) }), error => {
     assert.ok(!error.message.includes(uploaded.SIGNING_KEY));
     assert.match(error.message, /upload/i);
     return true;
@@ -124,8 +136,8 @@ test('nonzero upload exit and missing uploaded secret names never report success
     const remote = cloud();
     const output = [];
     const runner = async (args, input, options) => args[1] === 'bulk' ? uploadExit : remote.runner(args, input, options);
-    await assert.rejects(deploy({ environment: {}, runner, output: value => output.push(value) }), /upload|confirm/i);
-    assert.ok(!output.join('\n').includes('Credentials ready'));
+    await assert.rejects(initialize({ runner, output: value => output.push(value) }), /upload|confirm/i);
+    assert.ok(!output.join('\n').includes('Credentials stored'));
   }
 });
 
@@ -137,9 +149,9 @@ test('Cloudflare CI worker rename initializes only the worker selected in the de
     const nameIndex = args.indexOf('--name');
     const name = nameIndex === -1 ? 'bruno-license-lab' : args[nameIndex + 1];
     const baseArgs = nameIndex === -1 ? args : args.slice(0, nameIndex);
-    return (name === 'my-bruno-lab' ? selected : configured).runner(baseArgs, input, options);
+    return (name === 'my-bruno-lab' ? selected : configured).runner([...baseArgs, '--name', 'bruno-license-lab'], input, options);
   };
-  await deploy({ runner, output() {}, environment: { WRANGLER_CI_OVERRIDE_NAME: 'my-bruno-lab' } });
+  await runBuild({ runner, output() {}, environment: { WORKERS_CI: '1', WRANGLER_COMMAND: 'deploy', WRANGLER_CI_OVERRIDE_NAME: 'my-bruno-lab' } });
   assert.match(selected.secrets.CONNECT_CODE ?? '', /^[A-Za-z0-9_-]{64}$/);
   assert.match(selected.secrets.SIGNING_KEY ?? '', /^[A-Za-z0-9_-]{64}$/);
   assert.deepEqual(configured.secrets, { CONNECT_CODE: 'a'.repeat(64), SIGNING_KEY: 'b'.repeat(64) });
@@ -151,9 +163,9 @@ test('retry after an upload that stored nothing generates and displays a new usa
   const remote = cloud();
   const failedOutput = [];
   const failedRunner = async (args, input, options) => args[1] === 'bulk' ? 1 : remote.runner(args, input, options);
-  await assert.rejects(deploy({ environment: {}, runner: failedRunner, output: value => failedOutput.push(value) }));
+  await assert.rejects(initialize({ runner: failedRunner, output: value => failedOutput.push(value) }));
   const retryOutput = [];
-  await deploy({ environment: {}, runner: remote.runner, output: value => retryOutput.push(value) });
+  await initialize({ runner: remote.runner, output: value => retryOutput.push(value) });
   assert.ok(!failedOutput.join('\n').includes(remote.secrets.CONNECT_CODE));
   assert.ok(retryOutput.join('\n').includes(remote.secrets.CONNECT_CODE));
 });
@@ -166,11 +178,37 @@ test('retry after a lost upload response preserves the pair already stored remot
     if (args[1] === 'bulk') throw new Error('response lost');
     return result;
   };
-  await assert.rejects(deploy({ environment: {}, runner: failedRunner, output: value => failedOutput.push(value) }));
+  await assert.rejects(initialize({ runner: failedRunner, output: value => failedOutput.push(value) }));
   const original = { ...remote.secrets };
   const retryOutput = [];
-  await deploy({ environment: {}, runner: remote.runner, output: value => retryOutput.push(value) });
+  await initialize({ runner: remote.runner, output: value => retryOutput.push(value) });
   assert.deepEqual(remote.secrets, original);
   assert.ok(failedOutput.join('\n').includes(original.CONNECT_CODE));
   assert.ok(!retryOutput.join('\n').includes(original.CONNECT_CODE));
+});
+
+for (const environment of [
+  {},
+  { WRANGLER_COMMAND: 'deploy' },
+  { WORKERS_CI: '0', WRANGLER_COMMAND: 'deploy' },
+  { WORKERS_CI: '1', WRANGLER_COMMAND: 'dev' },
+  { WORKERS_CI: '1', WRANGLER_COMMAND: 'versions upload' },
+  { WORKERS_CI: '1', WRANGLER_COMMAND: 'deploy', BRUNO_SKIP_SECRET_INIT: '1' },
+]) {
+  test('custom build skips initialization outside CI deployment: ' + JSON.stringify(environment), async () => {
+    await runBuild({ environment, runner: async () => assert.fail('must not call Cloudflare'), output() {} });
+  });
+}
+
+test('CI deployment without a selected Worker fails before any remote changes', async () => {
+  await assert.rejects(runBuild({ environment: { WORKERS_CI: '1', WRANGLER_COMMAND: 'deploy' },
+    runner: async () => assert.fail('must not guess the Worker name'), output() {} }), /name/i);
+});
+
+test('a Worker still missing after upload cannot report initialized credentials', async () => {
+  const output = [];
+  const runner = async args => args[1] === 'bulk' ? 0
+    : { code: 1, stdout: '', stderr: 'Worker "bruno-license-lab" not found.' };
+  await assert.rejects(initialize({ runner, output: value => output.push(value) }), /secret/i);
+  assert.ok(!output.join('\n').includes('Credentials stored'));
 });

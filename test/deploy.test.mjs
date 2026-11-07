@@ -135,7 +135,7 @@ test('Cloudflare CI worker rename initializes only the worker selected in the de
   const selected = cloud();
   const runner = (args, input, options) => {
     const nameIndex = args.indexOf('--name');
-    const name = nameIndex === -1 ? 'bruno-helper' : args[nameIndex + 1];
+    const name = nameIndex === -1 ? 'bruno-license-lab' : args[nameIndex + 1];
     const baseArgs = nameIndex === -1 ? args : args.slice(0, nameIndex);
     return (name === 'my-bruno-lab' ? selected : configured).runner(baseArgs, input, options);
   };

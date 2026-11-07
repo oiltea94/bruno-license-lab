@@ -79,15 +79,15 @@ test('hosted setup orchestrates login, deploy, stdin secrets and endpoint readin
       events.push(args.join(' '));
       if (args[0] === 'deploy') {
         assert.equal(options.capture, true);
-        return { code: 0, stdout: 'Uploaded bruno-helper\n  https://bruno-helper.test-account.workers.dev\nCurrent Version ID: test\n' };
+        return { code: 0, stdout: 'Uploaded bruno-license-lab\n  https://bruno-license-lab.test-account.workers.dev\nCurrent Version ID: test\n' };
       }
       if (args[0] === 'secret') assert.match(JSON.parse(input).SIGNING_KEY, /^[A-Za-z0-9_-]{64}$/);
       return 0;
     },
     checkHealth: async (endpoint) => { events.push(`health ${endpoint}`); },
   });
-  assert.deepEqual(events, ['login', 'deploy', 'secret bulk', 'health https://bruno-helper.test-account.workers.dev']);
-  assert.equal(result.endpoint, 'https://bruno-helper.test-account.workers.dev');
+  assert.deepEqual(events, ['login', 'deploy', 'secret bulk', 'health https://bruno-license-lab.test-account.workers.dev']);
+  assert.equal(result.endpoint, 'https://bruno-license-lab.test-account.workers.dev');
   assert.equal(result.codePath, join(root, '.secrets', 'remote-connection-code.txt'));
 });
 
@@ -100,7 +100,7 @@ test('hosted setup reuses existing credentials and stops after failed login/depl
   const events = [];
   const runner = async (args) => {
     events.push(args.join(' '));
-    return args[0] === 'deploy' ? { code: 0, stdout: 'https://bruno-helper.example.workers.dev' } : 0;
+    return args[0] === 'deploy' ? { code: 0, stdout: 'https://bruno-license-lab.example.workers.dev' } : 0;
   };
   await setupHosted(root, { runner, checkHealth: async () => {} });
   assert.deepEqual(events, ['login', 'deploy']);
@@ -143,12 +143,12 @@ test('unified setup uses hosted deployment for cloudflare and never guesses noni
   const root = await sandbox(t), calls = [], output = [];
   const options = { root, interactive: false, output: s => output.push(s),
     runner: async args => { calls.push(args[0]); return args[0] === 'deploy'
-      ? {code:0, stdout:'https://bruno-helper.account.workers.dev'} : 0; }, checkHealth: async () => {} };
+      ? {code:0, stdout:'https://bruno-license-lab.account.workers.dev'} : 0; }, checkHealth: async () => {} };
   assert.equal(await runSetup([], options), 2);
   assert.deepEqual(calls, []);
   assert.equal(await runSetup(['--cloudflare'], options), 0);
   assert.deepEqual(calls, ['login','deploy','secret']);
-  assert.ok(output.join(' ').includes('https://bruno-helper.account.workers.dev'));
+  assert.ok(output.join(' ').includes('https://bruno-license-lab.account.workers.dev'));
 });
 
 test('unified local setup refuses partial credentials and invalid arguments before starting a process', async (t) => {

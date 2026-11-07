@@ -4,7 +4,9 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-本目录包含完整源码、依赖清单、部署脚本和测试，可单独复制后部署。终端部署需要 Node.js 22+；GitHub 按钮使用 Cloudflare 的构建环境。
+Bruno License Lab 是一个可自行部署的 Bruno 许可证协议实验服务，实现了许可证的激活、校验和刷新接口，支持本地运行和 Cloudflare Workers 部署。部署后，在 Bruno 原生的 **License → License Server** 界面填写服务地址、邮箱及你配置的激活 Key，即可接入自己的服务。
+
+仓库包含完整服务端源码、部署脚本和测试。运行 `npm run setup` 可选择本地或 Cloudflare 部署，也可通过下方按钮从 GitHub 部署。终端部署需要 Node.js 22+；网页部署使用 Cloudflare 的构建环境。
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/oiltea94/bruno-license-lab)
 

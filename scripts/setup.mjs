@@ -110,14 +110,42 @@ async function chooseMode(prompt) {
   const terminal = createInterface({ input: process.stdin, output: process.stdout });
   try { return await terminal.question(prompt); } finally { terminal.close(); }
 }
-async function instructions(endpoint, codePath, output, zh) {
+async function instructions(endpoint, codePath, output, zh, local = false) {
   const key = (await readFile(codePath, 'utf8')).trim();
-  output(zh ? '\n在 Bruno 的许可证激活界面启用自定义服务器，填写：' : '\nIn Bruno license activation, enable the custom license server and enter:');
-  output(`Server URL: ${endpoint}`);
-  output(zh ? 'Email: 你的邮箱（检查格式，不发送邮件验证）' : 'Email: your email address (format checked; no verification email)');
-  output(`License Key: ${key}`);
-  output(`${zh ? 'Key 文件' : 'Key file'}: ${codePath}`);
-  output(zh ? '点击 Activate 完成接入。请保存此 Key。' : 'Click Activate to connect. Keep this Key for future activation.');
+  const mode = local ? (zh ? '本地运行' : 'Local') : 'Cloudflare';
+  const steps = zh
+    ? ['    1. 打开 Bruno → License → License Server',
+       '    2. 填写上方服务地址、你的邮箱和 License Key',
+       local ? '    3. 等待下方显示 Ready 后，点击 Activate' : '    3. 点击 Activate 完成接入']
+    : ['    1. Open Bruno → License → License Server',
+       '    2. Enter the server URL, your email and License Key',
+       local ? '    3. Wait for Ready below, then click Activate' : '    3. Click Activate to connect'];
+  output([
+    '',
+    `  Bruno License Lab · ${mode}`,
+    '  ────────────────────────────────────────',
+    '',
+    zh ? '  连接信息' : '  Connection',
+    `    Server URL   ${endpoint}`,
+    zh ? '    Email        你的邮箱（仅检查格式，无需邮件验证）' : '    Email        Your email (format checked; no verification email)',
+    '',
+    '  License Key',
+    `    ${key}`,
+    '',
+    zh ? '  Key 已保存至' : '  Key saved to',
+    `    ${codePath}`,
+    '',
+    zh ? '  在 Bruno 中接入' : '  Connect in Bruno',
+    ...steps,
+    '',
+    local
+      ? (zh ? '  正在启动本地服务，请保持当前终端打开。' : '  Starting the local service. Keep this terminal open.')
+      : (zh ? '  Cloudflare 服务已就绪，健康检查通过。' : '  Cloudflare service ready. Health check passed.'),
+    local
+      ? (zh ? '  停止服务：Ctrl+C' : '  Stop the service: Ctrl+C')
+      : (zh ? '  可以关闭终端，服务会继续运行。' : '  You can close this terminal; the service stays online.'),
+    '',
+  ].join('\n'));
 }
 
 export async function runSetup(args, {
@@ -147,12 +175,10 @@ export async function runSetup(args, {
   if (mode === 'cloudflare' && portSet) { output(USAGE); return 2; }
   if (mode === 'local') {
     const codePath = await ensureLocal(root);
-    await instructions(`http://127.0.0.1:${port}`, codePath, output, zh);
-    output(zh ? '正在启动本地服务。等待 Wrangler 显示 Ready 后再激活；保持终端打开，Ctrl+C 停止。' : 'Starting locally. Wait for Wrangler Ready before activation; keep this terminal open. Ctrl+C stops the service.');
+    await instructions(`http://127.0.0.1:${port}`, codePath, output, zh, true);
     return runner(['dev', '--local', '--ip', '127.0.0.1', '--port', port]);
   }
   const result = await setupHosted(root, { runner, checkHealth });
-  output(zh ? 'Cloudflare 部署完成，健康检查通过。' : 'Cloudflare deployment and health check passed.');
   await instructions(result.endpoint, result.codePath, output, zh);
   return 0;
 }

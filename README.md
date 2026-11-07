@@ -2,6 +2,10 @@
 
 **Deploy once. Connect from Bruno.**
 
+[![Node.js ≥22](https://img.shields.io/badge/Node.js-%E2%89%A522-339933?style=flat&logo=nodedotjs&logoColor=white)](#deploy)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?style=flat&logo=cloudflare&logoColor=white)](#deploy)
+[![Self-hosted](https://img.shields.io/badge/Self--hosted-2563EB?style=flat)](#deploy)
+
 [English](README.md) · [简体中文](README.zh-CN.md)
 
 Bruno License Lab is a self-hosted service for experimenting with Bruno’s license server protocol. It implements license activation, verification and refresh, and can run locally or on Cloudflare Workers. Deploy the service, then enter its URL, an email address and your configured activation key in Bruno’s built-in **License → License Server** screen.
@@ -9,8 +13,6 @@ Bruno License Lab is a self-hosted service for experimenting with Bruno’s lice
 The repository includes the complete server source, deployment scripts and tests. Use `npm run setup` for local or Cloudflare deployment, or the button below for deployment from GitHub. Terminal deployment requires Node.js 22+; browser deployment uses Cloudflare’s build environment.
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/oiltea94/bruno-license-lab)
-
-Node.js 22+
 
 [Deploy](#deploy) · [Connect Bruno](#connect) · [Files & credentials](#files) · [Checks](#checks) · [Disclaimer](#disclaimer)
 

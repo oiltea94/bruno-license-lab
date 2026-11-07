@@ -8,9 +8,7 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-Bruno License Lab is a self-hosted service for experimenting with Bruno’s license server protocol. It implements license activation, verification and refresh, and can run locally or on Cloudflare Workers. Deploy the service, then enter its URL, an email address and your configured activation key in Bruno’s built-in **License → License Server** screen.
-
-The repository includes the complete server source, deployment scripts and tests. Use the button below to deploy from GitHub to Cloudflare, or run `npm run setup` to start locally. Local use requires Node.js 22+; browser deployment uses Cloudflare’s build environment.
+Bruno License Lab is a self-hosted service for experimenting with Bruno's license server protocol, running on Cloudflare Workers or locally.
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/oiltea94/bruno-license-lab)
 
@@ -22,63 +20,63 @@ The repository includes the complete server source, deployment scripts and tests
 
 ## Deploy
 
-| Option | Requirements | Entry point |
-|---|---|---|
-| Cloudflare in a browser | Cloudflare and GitHub accounts | Deploy button above |
-| Local service | Node.js 22+ | `npm run setup` |
+### Cloudflare
 
-### Deploy from GitHub
+1. Click the deploy button above, sign in to Cloudflare, authorize GitHub, and choose the new repository and Worker names.
+2. Leave the build command empty and keep the default deploy command (`npx wrangler deploy` or `npm run deploy`). No manual secret configuration is needed.
+3. Find `License Key (CONNECT_CODE):` in the initialization log, then copy and save the Key.
+4. Wait for deployment to succeed, then [connect Bruno](#connect) using the Worker URL and Key.
 
-1. Click the button, sign in to Cloudflare, and connect your GitHub account. The source repository must be public and contain these project files.
-2. Choose the new repository and Worker names. Keep the build command empty and leave the deploy command at its default, `npx wrangler deploy`. `npm run deploy` is also supported.
-3. Deploy without entering `CONNECT_CODE` or `SIGNING_KEY`. On the first deployment, Wrangler automatically runs initialization to generate two independent random secrets and store them in Cloudflare.
-4. Open the build log of the deployment that initializes the secrets, find `License Key (CONNECT_CODE):`, and copy the value. The private `SIGNING_KEY` is never printed. Save the Key for future use.
-5. Open the deployed URL followed by `/health`. Continue when it reports `status: "ok"` and `configured: true`, then use the Worker URL and your Key in Bruno's License Server screen.
+Updates preserve your Key. Repository owners can connect their existing repository directly in the Cloudflare dashboard.
 
-Only account authorization and repository/Worker choices are required; no local npm installation or manual secret generation is needed. Browser deployment does not create a local Key file. The Key appears during first-time initialization, before the secrets are saved. Wait for the entire deployment to succeed before using it. If it is lost, retrieve it from the log of the attempt that stored the current secrets.
+<details>
+<summary>Deployment troubleshooting and custom domains</summary>
 
-Later deployments through the connected repository preserve both existing secrets. An incomplete secret pair stops initialization without overwriting either secret. If upload fails and neither secret was stored, a retry generates a new Key: save the Key from that retry. If both secrets were stored despite the error, a retry preserves them: use the Key printed by the earlier attempt. Wait for initial setup to finish before starting another deployment of the same Worker; simultaneous initializations are not coordinated. For an existing service, keep using your current Key. If the secrets were saved but the later code deployment failed, retries retain that Key; retrieve it from the build log where initialization succeeded.
+- **Repository name already exists:** The deploy button creates a new repository. Choose another name or connect the existing repository in the Cloudflare dashboard.
+- **No Key in the log:** Check that the build uses the latest code. If it says `Existing credentials preserved`, use your saved Key or find it in the build log that first stored the secrets.
+- **Check service status:** Visit the Worker URL followed by `/health`. It should return `status: "ok"` and `configured: true`.
+- **Retry after failure:** Saved secrets retain their Key, even if the later code deployment failed. If no secrets were saved, retrying generates a new Key; save that value. If only one secret exists, restore the missing one in Cloudflare first. Do not start another deployment until initial setup finishes.
+- **Custom domain:** Configure it on the Worker and enter that exact HTTPS origin in Bruno. Set `PUBLIC_ORIGIN` to fix the origin explicitly if needed.
 
-Repository owners can also connect their existing GitHub repository directly in the Cloudflare dashboard, using the same default deploy command.
-
-Use the deployed Worker's actual `workers.dev` URL. For a custom domain, configure it on the Worker and use that exact HTTPS origin; `PUBLIC_ORIGIN` may be set to fix the origin explicitly.
+</details>
 
 ### Run locally
 
-Open a terminal in this folder:
+Requires Node.js 22+. In the project directory, run:
 
 ```sh
 npm ci
 npm run setup
 ```
 
-Setup directly creates or reuses local credentials, prints the **Server URL**, **License Key** and Key file location, then starts the service. Wait for **Ready** before connecting Bruno and keep the terminal open while using the service. Use `--lang en` or `--lang zh` to select the output language.
+Save the printed **Server URL** and **License Key**, then wait for **Ready** before connecting Bruno. Keep the terminal open while using the service; press **Ctrl+C** to stop.
 
-- Default URL: `http://127.0.0.1:8787`.
-- Stop: Ctrl+C. Restart: run `npm run setup` again; existing credentials are reused.
-- Health: `http://127.0.0.1:8787/health` should report `status: "ok"` and `configured: true`.
-- To change port: `npm run setup -- --port 8788`.
-- No Cloudflare account is needed. This foreground service listens only on the local computer; it is not installed as an OS service.
+<details>
+<summary>Port, language and credential backups</summary>
 
-Back up `.dev.vars` and `.secrets/local-connection-code.txt` together. If local credentials are incomplete, restore both files from the same backup; setup does not automatically overwrite existing credentials.
+- Default URL: `http://127.0.0.1:8787`, listening only on the local computer.
+- Restart: run `npm run setup` again to reuse existing credentials.
+- Change port: `npm run setup -- --port 8788`.
+- Change language: `npm run setup -- --lang en` or `--lang zh`.
+- Back up `.dev.vars` and `.secrets/local-connection-code.txt` together. If credentials are incomplete, restore both files from the same backup; setup does not overwrite existing credentials.
+
+</details>
 
 <a id="connect"></a>
 
 ## Connect Bruno
 
-Open **License**, select **License Server**, then fill in:
+Open **License → License Server**, fill in these fields, then click **Activate**:
 
 | Field | Value |
 |---|---|
-| License Server URL | The deployed Worker URL or setup's Server URL, without an API path |
-| Email | Your email address; format is checked, no verification email is sent |
-| License Key | The complete Key from the log of the attempt that stored the current secrets, or local setup |
-
-Click **Activate**.
+| License Server URL | Worker URL or local Server URL, without an API path |
+| Email | Your email address; format checked, no verification email |
+| License Key | Complete Key from the deployment initialization log or local setup |
 
 <a id="checks"></a>
 
-## Check source and build
+## Checks
 
 ```sh
 npm test
@@ -89,9 +87,14 @@ npm run dry-run
 
 ## Disclaimer
 
+<details>
+<summary>Read the full disclaimer</summary>
+
 - **Independent project.** This project is independently developed and is not affiliated with, endorsed by, or maintained by the Bruno or Cloudflare teams. Product names identify compatibility only.
 - **Purpose and authorization.** The project is intended for protocol research, interoperability experiments, and testing in environments you own or are authorized to operate. You are responsible for obtaining the permissions required for your use.
 - **No official license grant.** Keys and tokens generated by this service are not licenses issued by Bruno. They do not establish a purchase or subscription, grant rights to paid software or cloud services, or replace authorization from the relevant rights holder. A successful activation response does not establish entitlement to those rights.
 - **User responsibilities.** You are responsible for your deployment, access controls, credentials, backups, hosting charges, and compliance with applicable laws and third-party software licenses and service terms.
 - **No warranty.** The project is provided “as is” and “as available,” without warranties regarding availability, compatibility, security, or fitness for a particular purpose. To the extent permitted by applicable law, the authors and contributors disclaim liability for losses resulting from use of the project. This does not exclude liability that applicable law does not permit to be excluded.
 - **Scope of this notice.** This disclaimer does not grant intellectual-property rights or permission to use third-party services, and does not replace a software license or any permissions required for your use.
+
+</details>

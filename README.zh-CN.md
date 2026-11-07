@@ -14,7 +14,7 @@ Bruno License Lab 是一个可自行部署的 Bruno 许可证协议实验服务�
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/oiltea94/bruno-license-lab)
 
-[部署](#deploy) · [接入 Bruno](#connect) · [文件与凭据](#files) · [开发检查](#checks) · [免责声明](#disclaimer)
+[部署](#deploy) · [接入 Bruno](#connect) · [开发检查](#checks) · [免责声明](#disclaimer)
 
 > 独立项目。生成的 Key 不是 Bruno 官方许可证。详见[免责声明](#disclaimer)。
 
@@ -58,6 +58,8 @@ setup 会直接创建或复用本地凭据，显示 **Server URL**、**License K
 - 换端口：`npm run setup -- --port 8788`。
 - 不需要 Cloudflare 账号。服务在前台运行且仅监听本机，没有安装为操作系统服务。
 
+请成对备份 `.dev.vars` 和 `.secrets/local-connection-code.txt`。本地凭据不完整时，还原同一份备份中的两个文件；setup 不会自动覆盖已有凭据。
+
 <a id="connect"></a>
 
 ## 在 Bruno 中使用
@@ -71,30 +73,6 @@ setup 会直接创建或复用本地凭据，显示 **Server URL**、**License K
 | License Key | 实际保存当前密钥的那次部署日志或本地 setup 输出的完整 Key |
 
 点击 **Activate**。
-
-<a id="files"></a>
-
-## 文件与凭据
-
-| 路径 | 用途 |
-|---|---|
-| `worker.mjs` | 激活、验证、刷新和健康检查接口 |
-| `scripts/` | 本地初始化与网页部署脚本 |
-| `test/` | 服务和部署流程的回归测试 |
-| `package.json`、`package-lock.json` | 命令与固定版本的依赖清单 |
-| `wrangler.jsonc` | Worker 配置 |
-| `.dev.vars` | 运行后生成的本地服务密钥 |
-| `.secrets/` | 本地运行生成的 Key 文件 |
-| `node_modules/` | npm 安装的依赖 |
-
-<details>
-<summary>凭据备份与源码分享说明</summary>
-
-成对保存 `.dev.vars` 与 `.secrets/local-connection-code.txt`。本地和远程 Key 相互独立，远程签名密钥保存在 Cloudflare。本地凭据不完整时请还原匹配的文件，setup 不会自动覆盖。远程上传密钥失败时，先检查 Cloudflare 密钥状态再重试。更换签名密钥会使旧令牌失效。
-
-分享源码时，保留源码及配置文件、`scripts/`、`test/` 和两份 README。排除 `.dev.vars`、`.secrets/`、依赖、`.tooling/`、`.wrangler/`、`.tmp/`、`.npm-cache/`、`.dry-run/`。setup 的终端输出会显示激活 Key。
-
-</details>
 
 <a id="checks"></a>
 

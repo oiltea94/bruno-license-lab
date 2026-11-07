@@ -14,7 +14,7 @@ The repository includes the complete server source, deployment scripts and tests
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/oiltea94/bruno-license-lab)
 
-[Deploy](#deploy) · [Connect Bruno](#connect) · [Files & credentials](#files) · [Checks](#checks) · [Disclaimer](#disclaimer)
+[Deploy](#deploy) · [Connect Bruno](#connect) · [Checks](#checks) · [Disclaimer](#disclaimer)
 
 > Independent project. Generated keys are not official Bruno licenses. See the [disclaimer](#disclaimer).
 
@@ -58,6 +58,8 @@ Setup directly creates or reuses local credentials, prints the **Server URL**, *
 - To change port: `npm run setup -- --port 8788`.
 - No Cloudflare account is needed. This foreground service listens only on the local computer; it is not installed as an OS service.
 
+Back up `.dev.vars` and `.secrets/local-connection-code.txt` together. If local credentials are incomplete, restore both files from the same backup; setup does not automatically overwrite existing credentials.
+
 <a id="connect"></a>
 
 ## Connect Bruno
@@ -71,30 +73,6 @@ Open **License**, select **License Server**, then fill in:
 | License Key | The complete Key from the log of the attempt that stored the current secrets, or local setup |
 
 Click **Activate**.
-
-<a id="files"></a>
-
-## Files and credentials
-
-| Path | Purpose |
-|---|---|
-| `worker.mjs` | Activation, verification, refresh and health endpoints |
-| `scripts/` | Local setup and browser deployment scripts |
-| `test/` | Service and setup regression tests |
-| `package.json`, `package-lock.json` | Commands and pinned dependency versions |
-| `wrangler.jsonc` | Worker configuration |
-| `.dev.vars` | Generated local server secrets |
-| `.secrets/` | Generated local Key files |
-| `node_modules/` | Dependencies installed by npm |
-
-<details>
-<summary>Credential backups and sharing source</summary>
-
-Preserve `.dev.vars` and `.secrets/local-connection-code.txt` together. The local and hosted Keys are separate. Hosted signing secrets are stored in Cloudflare. If local credentials are incomplete, restore the matching files; setup does not automatically overwrite them. If a hosted secret upload fails, inspect the Cloudflare secrets before retrying. Changing the signing secret invalidates existing tokens.
-
-To share source, include the source/configuration files, `scripts/`, `test/` and both READMEs. Exclude `.dev.vars`, `.secrets/`, dependencies, `.tooling/`, `.wrangler/`, `.tmp/`, `.npm-cache/` and `.dry-run/`. Setup displays the activation Key in its terminal output.
-
-</details>
 
 <a id="checks"></a>
 

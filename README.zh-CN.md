@@ -10,7 +10,7 @@
 
 Bruno License Lab 是一个可自行部署的 Bruno 许可证协议实验服务，实现了许可证的激活、校验和刷新接口，支持本地运行和 Cloudflare Workers 部署。部署后，在 Bruno 原生的 **License → License Server** 界面填写服务地址、邮箱及你配置的激活 Key，即可接入自己的服务。
 
-仓库包含完整服务端源码、部署脚本和测试。运行 `npm run setup` 可选择本地或 Cloudflare 部署，也可通过下方按钮从 GitHub 部署。终端部署需要 Node.js 22+；网页部署使用 Cloudflare 的构建环境。
+仓库包含完整服务端源码、部署脚本和测试。通过下方按钮从 GitHub 部署到 Cloudflare，或运行 `npm run setup` 在本地启动。本地运行需要 Node.js 22+；网页部署使用 Cloudflare 的构建环境。
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/oiltea94/bruno-license-lab)
 
@@ -25,8 +25,7 @@ Bruno License Lab 是一个可自行部署的 Bruno 许可证协议实验服务�
 | 方式 | 准备条件 | 入口 |
 |---|---|---|
 | Cloudflare 网页部署 | Cloudflare 和 GitHub 账号 | 上方部署按钮 |
-| 本地运行 | Node.js 22+ | `npm run setup` → 本地 |
-| Cloudflare 终端部署 | Node.js 22+ 和 Cloudflare 账号 | `npm run setup` → Cloudflare |
+| 本地运行 | Node.js 22+ | `npm run setup` |
 
 ### 从 GitHub 网页部署
 
@@ -38,9 +37,11 @@ Bruno License Lab 是一个可自行部署的 Bruno 许可证协议实验服务�
 
 只需完成账号授权并选择仓库和 Worker，无需本机安装 npm，也无需手动生成密钥。网页部署不会生成本机 Key 文件。首次初始化时，日志会在上传前显示 Key，初始化成功后即可使用；如果忘记保存，可回到实际保存当前密钥的那次部署日志查找。
 
-后续通过绑定仓库更新或运行 `npm run deploy`，都会保留已有的两项密钥。若远程只存在其中一项，脚本会停止初始化，保留现有密钥。若上传失败且远程未保存任何一项密钥，重试会生成新 Key，请保存重试日志中的新值；若报错前两项密钥实际上已保存，重试会保留它们，请使用上一次日志中的 Key。同一个 Worker 请等首次初始化结束后再启动下一次部署；脚本没有协调多个同时运行的初始化任务。已经部署过的服务继续使用原来的 Key。在新的本地目录对同一 Worker 执行 `setup` 可能替换其密钥。
+后续通过绑定仓库更新，会保留已有的两项密钥。若远程只存在其中一项，脚本会停止初始化，保留现有密钥。若上传失败且远程未保存任何一项密钥，重试会生成新 Key，请保存重试日志中的新值；若报错前两项密钥实际上已保存，重试会保留它们，请使用上一次日志中的 Key。同一个 Worker 请等首次初始化结束后再启动下一次部署；脚本没有协调多个同时运行的初始化任务。已经部署过的服务继续使用原来的 Key。
 
-### 从终端部署
+部署后使用 Worker 的实际 `workers.dev` 地址。如需自定义域名，在 Worker 中配置域名，并使用完全相同的 HTTPS origin；可设置 `PUBLIC_ORIGIN` 显式固定该 origin。
+
+### 本地运行
 
 在本目录打开终端：
 
@@ -49,37 +50,13 @@ npm ci
 npm run setup
 ```
 
-选择 **1 — 本地运行** 或 **2 — Cloudflare**。setup 会显示 **Server URL**、**License Key** 和 Key 文件位置。提示语言可用 `--lang zh` 或 `--lang en` 指定。
-
-| 方式 | 行为 |
-|---|---|
-| 本地运行 | 创建或复用凭据并启动服务；等待 Ready，保持终端打开 |
-| Cloudflare | 打开浏览器登录、发布并检查健康状态；关闭终端后服务继续运行 |
-
-也可跳过菜单，直接指定方式：
-
-```sh
-npm run setup -- --local
-npm run setup -- --cloudflare
-```
-
-#### 本地运行说明
+setup 会直接创建或复用本地凭据，显示 **Server URL**、**License Key** 和 Key 文件位置，然后启动服务。等待 **Ready** 后即可接入 Bruno，使用期间请保持终端打开。提示语言可用 `--lang zh` 或 `--lang en` 指定。
 
 - 默认地址：`http://127.0.0.1:8787`。
-- 停止：Ctrl+C。重启：再次执行 `npm run setup -- --local`，已有凭据会复用。
+- 停止：Ctrl+C。重启：再次执行 `npm run setup`，已有凭据会复用。
 - 健康检查：`http://127.0.0.1:8787/health` 应显示 `status: "ok"` 和 `configured: true`。
-- 换端口：`npm run setup -- --local --port 8788`。
+- 换端口：`npm run setup -- --port 8788`。
 - 不需要 Cloudflare 账号。服务在前台运行且仅监听本机，没有安装为操作系统服务。
-
-#### Cloudflare 更新与域名
-
-完成浏览器登录，使用 setup 输出的实际 `workers.dev` 地址。保留 `.secrets/remote-connection-code.txt`，供以后 setup 使用。后续更新代码执行：
-
-```sh
-npm run deploy
-```
-
-引导流程使用 `workers.dev`。如需自定义域名，在 Worker 中配置域名，并使用完全相同的 HTTPS origin；可设置 `PUBLIC_ORIGIN` 显式固定该 origin。
 
 <a id="connect"></a>
 
@@ -91,7 +68,7 @@ npm run deploy
 |---|---|
 | License Server URL | 部署后的 Worker 地址或 setup 输出的 Server URL，不加 API 路径 |
 | Email | 你的邮箱；只检查格式，不发送验证邮件 |
-| License Key | 实际保存当前密钥的那次部署日志或终端 setup 输出的完整 Key |
+| License Key | 实际保存当前密钥的那次部署日志或本地 setup 输出的完整 Key |
 
 点击 **Activate**。
 
@@ -102,12 +79,12 @@ npm run deploy
 | 路径 | 用途 |
 |---|---|
 | `worker.mjs` | 激活、验证、刷新和健康检查接口 |
-| `scripts/` | 初始化与部署命令 |
+| `scripts/` | 本地初始化与网页部署脚本 |
 | `test/` | 服务和部署流程的回归测试 |
 | `package.json`、`package-lock.json` | 命令与固定版本的依赖清单 |
 | `wrangler.jsonc` | Worker 配置 |
 | `.dev.vars` | 运行后生成的本地服务密钥 |
-| `.secrets/` | 运行后生成的 Key 文件 |
+| `.secrets/` | 本地运行生成的 Key 文件 |
 | `node_modules/` | npm 安装的依赖 |
 
 <details>

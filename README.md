@@ -10,7 +10,7 @@
 
 Bruno License Lab is a self-hosted service for experimenting with Bruno’s license server protocol. It implements license activation, verification and refresh, and can run locally or on Cloudflare Workers. Deploy the service, then enter its URL, an email address and your configured activation key in Bruno’s built-in **License → License Server** screen.
 
-The repository includes the complete server source, deployment scripts and tests. Use `npm run setup` for local or Cloudflare deployment, or the button below for deployment from GitHub. Terminal deployment requires Node.js 22+; browser deployment uses Cloudflare’s build environment.
+The repository includes the complete server source, deployment scripts and tests. Use the button below to deploy from GitHub to Cloudflare, or run `npm run setup` to start locally. Local use requires Node.js 22+; browser deployment uses Cloudflare’s build environment.
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/oiltea94/bruno-license-lab)
 
@@ -25,8 +25,7 @@ The repository includes the complete server source, deployment scripts and tests
 | Option | Requirements | Entry point |
 |---|---|---|
 | Cloudflare in a browser | Cloudflare and GitHub accounts | Deploy button above |
-| Local service | Node.js 22+ | `npm run setup` → Local |
-| Cloudflare from a terminal | Node.js 22+ and a Cloudflare account | `npm run setup` → Cloudflare |
+| Local service | Node.js 22+ | `npm run setup` |
 
 ### Deploy from GitHub
 
@@ -38,9 +37,11 @@ The repository includes the complete server source, deployment scripts and tests
 
 Only account authorization and repository/Worker choices are required; no local npm installation or manual secret generation is needed. Browser deployment does not create a local Key file. The Key appears during first-time initialization, before upload, and becomes usable once initialization succeeds. If it is lost, retrieve it from the log of the attempt that stored the current secrets.
 
-Later deployments through the connected repository or `npm run deploy` preserve both existing secrets. An incomplete secret pair stops initialization without overwriting either secret. If upload fails and neither secret was stored, a retry generates a new Key: save the Key from that retry. If both secrets were stored despite the error, a retry preserves them: use the Key printed by the earlier attempt. Wait for initial setup to finish before starting another deployment of the same Worker; simultaneous initializations are not coordinated. For an existing service, keep using your current Key. Running a fresh local `setup` against the same Worker can replace its secrets.
+Later deployments through the connected repository preserve both existing secrets. An incomplete secret pair stops initialization without overwriting either secret. If upload fails and neither secret was stored, a retry generates a new Key: save the Key from that retry. If both secrets were stored despite the error, a retry preserves them: use the Key printed by the earlier attempt. Wait for initial setup to finish before starting another deployment of the same Worker; simultaneous initializations are not coordinated. For an existing service, keep using your current Key.
 
-### Deploy from a terminal
+Use the deployed Worker's actual `workers.dev` URL. For a custom domain, configure it on the Worker and use that exact HTTPS origin; `PUBLIC_ORIGIN` may be set to fix the origin explicitly.
+
+### Run locally
 
 Open a terminal in this folder:
 
@@ -49,37 +50,13 @@ npm ci
 npm run setup
 ```
 
-Choose **1 — Local** or **2 — Cloudflare**. Setup prints the **Server URL**, **License Key** and Key file location. Use `--lang en` or `--lang zh` to select the prompt language.
-
-| Mode | Behavior |
-|---|---|
-| Local | Creates or reuses credentials and starts the service; wait for Ready and keep the terminal open |
-| Cloudflare | Opens browser login, deploys and checks health; the service stays online when the terminal closes |
-
-For a specific mode without the menu:
-
-```sh
-npm run setup -- --local
-npm run setup -- --cloudflare
-```
-
-#### Local runtime
+Setup directly creates or reuses local credentials, prints the **Server URL**, **License Key** and Key file location, then starts the service. Wait for **Ready** before connecting Bruno and keep the terminal open while using the service. Use `--lang en` or `--lang zh` to select the output language.
 
 - Default URL: `http://127.0.0.1:8787`.
-- Stop: Ctrl+C. Restart: run `npm run setup -- --local` again; existing credentials are reused.
+- Stop: Ctrl+C. Restart: run `npm run setup` again; existing credentials are reused.
 - Health: `http://127.0.0.1:8787/health` should report `status: "ok"` and `configured: true`.
-- To change port: `npm run setup -- --local --port 8788`.
+- To change port: `npm run setup -- --port 8788`.
 - No Cloudflare account is needed. This foreground service listens only on the local computer; it is not installed as an OS service.
-
-#### Cloudflare updates and domains
-
-Complete the browser login and use the actual `workers.dev` URL printed by setup. Keep `.secrets/remote-connection-code.txt` for subsequent setup runs. To publish later code updates:
-
-```sh
-npm run deploy
-```
-
-The guided flow uses `workers.dev`. For a custom domain, configure it on the Worker and use that exact HTTPS origin; `PUBLIC_ORIGIN` may be set to fix the origin explicitly.
 
 <a id="connect"></a>
 
@@ -91,7 +68,7 @@ Open **License**, select **License Server**, then fill in:
 |---|---|
 | License Server URL | The deployed Worker URL or setup's Server URL, without an API path |
 | Email | Your email address; format is checked, no verification email is sent |
-| License Key | The complete Key from the log of the attempt that stored the current secrets, or terminal setup |
+| License Key | The complete Key from the log of the attempt that stored the current secrets, or local setup |
 
 Click **Activate**.
 
@@ -102,12 +79,12 @@ Click **Activate**.
 | Path | Purpose |
 |---|---|
 | `worker.mjs` | Activation, verification, refresh and health endpoints |
-| `scripts/` | Setup and deployment commands |
+| `scripts/` | Local setup and browser deployment scripts |
 | `test/` | Service and setup regression tests |
 | `package.json`, `package-lock.json` | Commands and pinned dependency versions |
 | `wrangler.jsonc` | Worker configuration |
 | `.dev.vars` | Generated local server secrets |
-| `.secrets/` | Generated Key files |
+| `.secrets/` | Generated local Key files |
 | `node_modules/` | Dependencies installed by npm |
 
 <details>

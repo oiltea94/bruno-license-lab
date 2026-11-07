@@ -1,0 +1,30 @@
+{
+  "name": "bruno-helper-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Stateless, device-bound client license helper",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "dev": "node scripts/wrangler.mjs dev --local",
+    "dry-run": "node scripts/wrangler.mjs deploy --dry-run --outdir .dry-run",
+    "setup": "node scripts/setup.mjs",
+    "deploy": "node scripts/wrangler.mjs deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.158.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "CONNECT_CODE": {
+        "description": "License Key entered in Bruno. Generate a random 64-character ASCII string (32–512 allowed), different from SIGNING_KEY. / 在 Bruno 中填写的激活 Key。请生成独立的 64 位 ASCII 随机字符串。"
+      },
+      "SIGNING_KEY": {
+        "description": "Private signing secret. Generate a different random 64-character ASCII string (32–512 allowed); never enter it in Bruno. / 私有签名密钥。请生成另一个独立的随机字符串，不要填入 Bruno。"
+      }
+    }
+  }
+}
